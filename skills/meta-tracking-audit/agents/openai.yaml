@@ -1,0 +1,4 @@
+interface:
+  display_name: "Meta Tracking Audit"
+  short_description: "Audit Meta Pixel and CAPI implementations"
+  default_prompt: "Use $meta-tracking-audit to audit this website's Meta Pixel and Conversions API implementation."
