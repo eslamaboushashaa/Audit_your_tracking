@@ -1,59 +1,92 @@
 # Audit Your Tracking
 
-English, Meta-only tracking audit package for ChatGPT/Codex and Claude. Version 2, reviewed 2026-10-11.
+Three separate English audit skills and prompts for **Meta, TikTok, and Snapchat**, usable with capable ChatGPT/Codex and Claude environments. Version 3, expanded 2026-10-24.
 
-The workflow preserves Meta MCP first, Chrome Events Manager fallback, exact Dataset matching, parameter/type checks, multi-product checkout, EMQ > 8.5, a precisely defined 100% deduplication target, and yesterday's sales reconciliation.
+Each workflow tests real business triggers, request destinations, parameter types and meaning, matching signals, server receipt, deduplication, multi-product checkout, and yesterday's sales reconciliation. Each produces a client audit report plus an audit-method/LLM handoff.
 
-## Choose your entry point
+## Choose a platform
 
-| Environment | Use |
+| Platform | Full standalone prompt | Skill entry point | Uploadable skill ZIP |
+|---|---|---|---|
+| Meta | [Meta prompt](prompts/meta_pixel_capi_audit_master_prompt.md) | [meta-tracking-audit](skills/meta-tracking-audit/SKILL.md) | [Meta ZIP](dist/meta-tracking-audit.zip) |
+| TikTok | [TikTok prompt](prompts/tiktok_pixel_events_api_audit_master_prompt.md) | [tiktok-tracking-audit](skills/tiktok-tracking-audit/SKILL.md) | [TikTok ZIP](dist/tiktok-tracking-audit.zip) |
+| Snapchat | [Snapchat prompt](prompts/snapchat_pixel_capi_audit_master_prompt.md) | [snapchat-tracking-audit](skills/snapchat-tracking-audit/SKILL.md) | [Snapchat ZIP](dist/snapchat-tracking-audit.zip) |
+
+Each ZIP has one skill folder, its own references, and optional OpenAI UI metadata. Each prompt embeds its complete workflow and references. No skill requires installing another platform's skill.
+
+## Use in ChatGPT or Claude
+
+For a conversation, paste or attach the selected full prompt and say:
+
+> Follow this audit workflow for my website: [URL].
+
+If the URL is missing, the workflow asks for it first. Full execution needs actual browser/Network capabilities and authorized account access; plain chat with no tools can only review supplied evidence.
+
+For native skill use:
+
+| Environment | Setup and invocation |
 |---|---|
-| ChatGPT or Claude conversation | Paste or attach the full [standalone prompt](prompts/meta_pixel_capi_audit_master_prompt.md), then say: "Follow this audit workflow. My website is [URL]." |
-| Claude with custom Skills enabled | Upload [meta-tracking-audit.zip](dist/meta-tracking-audit.zip) in Customize > Skills using the skill upload option; enable it, then request the audit by name. |
-| Claude Code | Copy the complete [skill folder](skills/meta-tracking-audit/) to your project's .claude/skills/meta-tracking-audit/. Invoke /meta-tracking-audit or ask to use it. |
-| Codex local project | Copy the complete skill folder to your project's .agents/skills/meta-tracking-audit/. Select the skill or invoke $meta-tracking-audit. |
-| ChatGPT with the skill registered in its Skills interface | Select the registered skill using @ or ask to use it by name. If it is not registered, use the standalone prompt. |
+| Claude with custom Skills enabled | Upload the selected ZIP through the custom skill upload option in Customize > Skills, enable it, and ask to use it by name. |
+| Claude Code | Copy the complete selected folder into .claude/skills/ at the project root. Invoke /tiktok-tracking-audit, /snapchat-tracking-audit, or /meta-tracking-audit. |
+| Codex local project | Copy the complete selected folder into .agents/skills/ at the project root. Select it or invoke $tiktok-tracking-audit, $snapchat-tracking-audit, or $meta-tracking-audit. |
+| ChatGPT with the skill registered in Skills | Select it with @ or ask to use the registered skill. If unavailable, use its standalone prompt. |
 
-The source folder under Audit_your_tracking/skills is an authoring location; it is not automatically registered in every product. This update does not install globally or publish a plugin. Copy the references with SKILL.md; agents/openai.yaml is optional OpenAI UI metadata, not a Claude dependency.
+The authoring folders under skills/ are not automatically registered in every host. Copy supporting references together with SKILL.md. agents/openai.yaml is optional OpenAI UI metadata; Claude does not depend on it. This repository does not install skills globally, register connectors, or publish a plugin.
 
-For an agent that can read this repository, no installation is needed to explicitly request:
+An agent with repository-file access can also be instructed directly:
 
-> Read skills/meta-tracking-audit/SKILL.md and its referenced files from this package's root, then follow that workflow to audit [URL].
+> Read skills/snapchat-tracking-audit/SKILL.md and its references, then follow that workflow for [URL].
 
-Claude upload requires its supported skills/code-execution capability and applicable workspace permissions. ChatGPT product surfaces differ: a ZIP attachment is not automatically a registered skill. The standalone prompt is the fallback for either product.
+Replace the skill folder for the desired platform. Product permissions, code-execution availability, and skill controls still apply; a ZIP attachment alone is not proof of registration.
 
-Installation details follow [OpenAI skill documentation](https://learn.chatgpt.com/docs/build-skills), [Claude Code skill documentation](https://code.claude.com/docs/en/skills), and [Claude custom skill instructions](https://support.claude.com/en/articles/12512180-use-skills-in-claude). Recheck these sources if the product UI changes.
+See [OpenAI skill setup](https://learn.chatgpt.com/docs/build-skills), [Claude Code skills](https://code.claude.com/docs/en/skills), and [Claude custom skills](https://support.claude.com/en/articles/12512180-use-skills-in-claude) for host-specific setup. Recheck the current UI if it differs.
 
-## Tools and access still matter
+## Common audit requirements
 
-Neither a prompt nor a skill grants access to Meta, Chrome, Network logs, or customer systems. The agent must discover the tools actually available.
+- Use the platform's authorized MCP first for account data; use Chrome/browser automation for missing capabilities, then scoped exports.
+- Match the complete live website Pixel/source ID with the exact account source; ignore unrelated IDs.
+- Test quantity 1, quantity >1, and at least two distinct products together in checkout.
+- Compare original types separately from wire serialization and business meaning.
+- Place a test order only when authorized for that audit; record cancellation ownership.
+- Compare yesterday's eligible store sales with comparable event-source measurements, not campaign-attributed conversions.
+- Separate sampled deduplication-key coverage from account-wide suppression; define the 100% target population.
+- Report missing access and unresolved schema conflicts without fabricating metrics or granting overall PASS.
 
-A complete audit typically needs website browser/Network inspection, authorized matching Dataset access, sales figures/export, and permission for one test order. Use Meta MCP first; if absent or insufficient, use Chrome/browser automation for missing account measurements. Trusted connector setup is conditional on host support and official authorization.
+Tools and permissions are discovered at runtime. Advertising MCPs may expose campaign/pixel metadata without event quality or deduplication diagnostics. Browser UI access alone does not guarantee Network access.
 
-Without those capabilities, the workflow produces an explicitly limited evidence review and asks for the missing evidence. It must never claim a full live audit, EMQ, CAPI receipt, or account-wide deduplication from a generic chat alone.
+## Platform distinctions
 
-## Included files
+| Platform | Server integration | Important distinctions |
+|---|---|---|
+| Meta | Conversions API | Browser eventID/server event_id; Meta-specific field and EMQ checks |
+| TikTok | Events API | ttq/page handling; Purchase versus legacy event mappings; TikTok properties/contents and event_id |
+| Snapchat | Conversions API | Browser price/item_ids versus v3 value/content_ids; client_dedup_id/event_id and documented purchase fallback |
 
-- [SKILL.md](skills/meta-tracking-audit/SKILL.md): concise portable workflow.
-- [References](skills/meta-tracking-audit/references/): access/evidence, journey/capture, event contracts/calculations, and two deliverable templates.
-- [Standalone prompt](prompts/meta_pixel_capi_audit_master_prompt.md): full workflow and references in one copyable file.
-- [Skill ZIP](dist/meta-tracking-audit.zip): one top-level skill folder with its resources.
-- [Review](REVIEW.md): previous gaps, changes, requirement mapping, and validation limits.
-- [Evaluation scenarios](validation/scenarios.md): cases for testing real model behavior.
+The Meta client target remains strictly above 8.5/10. For the new platforms, inspect their native quality metric and scale first. Do not silently convert 8.5 into a percentage or treat Snapchat EQS as Meta EMQ. Use >8.5 only when the actual native score supports that ten-point target; otherwise obtain an appropriate target.
 
-## Maintain one source
+Platform schema references and source-access caveats live in each skill's event-contract reference. The [expansion review](PLATFORM_EXPANSION_REVIEW.md) records the new platform distinctions and validation limits.
 
-Edit SKILL.md and the reference files, then rebuild the prompt and ZIP from the package/repository root:
+## Maintain and validate
+
+Edit the canonical skill/reference files, then run from the repository root:
 
 ~~~text
 python tools/build_package.py
 python tools/build_package.py --check
 ~~~
 
-The builder uses only Python's standard library, checks local reference paths and basic structure, and compares generated artifacts byte-for-byte in check mode. It is not a Meta payload validator or an LLM behavior test. No dependencies, account access, installation, or network calls are performed.
+To build or check just one platform:
 
-The prompt inside this repository is canonical. Any older copies outside this package are legacy drafts and are not maintained by this build.
+~~~text
+python tools/build_package.py --platform tiktok
+python tools/build_package.py --platform snapchat --check
+~~~
 
-## Validation boundary
+The standard-library builder produces all three prompts and ZIPs deterministically, validates local reference paths and basic structure, and detects stale artifacts. Do not edit generated prompts or ZIPs directly.
 
-The instructions and package can be structurally checked here. End-to-end execution inside both ChatGPT and Claude still requires separate runs with their available tools and authorized accounts. No prompt can guarantee an accurate audit regardless of access or evidence.
+- [Original Meta review](REVIEW.md)
+- [Meta evaluation scenarios](validation/scenarios.md)
+- [TikTok evaluation scenarios](validation/tiktok-scenarios.md)
+- [Snapchat evaluation scenarios](validation/snapchat-scenarios.md)
+
+Structural validation is not a live audit or a cross-model behavior test. Live evaluation in ChatGPT and Claude still requires controlled runs with authorized tools/accounts. These prompts cannot guarantee evidence that the environment does not provide.

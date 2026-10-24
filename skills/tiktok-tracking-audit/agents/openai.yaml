@@ -1,0 +1,4 @@
+interface:
+  display_name: "TikTok Tracking Audit"
+  short_description: "Audit TikTok browser and server tracking"
+  default_prompt: "Use $tiktok-tracking-audit to audit this website's TikTok Pixel and Events API implementation."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Snapchat Tracking Audit"
+  short_description: "Audit Snapchat browser and server tracking"
+  default_prompt: "Use $snapchat-tracking-audit to audit this website's Snapchat Pixel and Conversions API (CAPI) implementation."

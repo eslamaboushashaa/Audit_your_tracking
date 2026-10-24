@@ -1,4 +1,4 @@
-"""Build the portable skill ZIP and standalone prompt from canonical sources."""
+"""Build standalone prompts and portable skill ZIPs for three tracking platforms."""
 import argparse
 import io
 import re
@@ -6,20 +6,27 @@ import zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-SKILL = ROOT / "skills" / "meta-tracking-audit"
-REFERENCES = (
-    "account-access-and-evidence.md",
-    "journey-and-capture.md",
-    "meta-event-contract.md",
-    "report-template.md",
-)
+PLATFORMS = {
+    "meta": ("Meta Pixel and Conversions API Audit", "meta_pixel_capi_audit_master_prompt.md"),
+    "tiktok": ("TikTok Pixel and Events API Audit", "tiktok_pixel_events_api_audit_master_prompt.md"),
+    "snapchat": ("Snapchat Pixel and Conversions API Audit", "snapchat_pixel_capi_audit_master_prompt.md"),
+}
+
+
+def reference_names(platform):
+    return (
+        "account-access-and-evidence.md",
+        "journey-and-capture.md",
+        f"{platform}-event-contract.md",
+        "report-template.md",
+    )
 
 
 def read(path):
     return path.read_text(encoding="utf-8").replace("\r\n", "\n")
 
 
-def sources():
+def sources(SKILL, REFERENCES):
     manifest = read(SKILL / "SKILL.md")
     match = re.match(r"\A---\n(.*?)\n---\n(.*)\Z", manifest, re.S)
     if not match:
@@ -52,11 +59,11 @@ def sources():
     return match[2].strip(), refs
 
 
-def build_prompt(body, refs):
-    for name in REFERENCES:
+def build_prompt(title, body, refs):
+    for name in refs:
         body = body.replace(f"(references/{name})", f"(#reference-{Path(name).stem})")
     header = (
-        "# Master Prompt: Meta Pixel and Conversions API Audit\n\n"
+        f"# Master Prompt: {title}\n\n"
         "Use this complete workflow in ChatGPT, Claude, or another capable agent. "
         "It contains all required reference sections; no local skill files are needed. "
         "Discover actual tools and permissions before making capability claims.\n\n"
@@ -73,7 +80,7 @@ def build_prompt(body, refs):
     return ("\n\n---\n\n".join(sections) + "\n").encode("utf-8")
 
 
-def build_zip():
+def build_zip(SKILL, REFERENCES):
     paths = [SKILL / "SKILL.md", SKILL / "agents" / "openai.yaml"]
     paths += [SKILL / "references" / name for name in REFERENCES]
     output = io.BytesIO()
@@ -90,9 +97,9 @@ def build_zip():
         if archive.testzip() is not None:
             raise ValueError("ZIP integrity failed")
         names = archive.namelist()
-        if names.count("meta-tracking-audit/SKILL.md") != 1:
+        if names.count(f"{SKILL.name}/SKILL.md") != 1:
             raise ValueError("ZIP must have one skill manifest")
-        if any(not name.startswith("meta-tracking-audit/") or ".." in Path(name).parts for name in names):
+        if any(not name.startswith(f"{SKILL.name}/") or ".." in Path(name).parts for name in names):
             raise ValueError("ZIP contains invalid paths")
     return data
 
@@ -100,12 +107,17 @@ def build_zip():
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true", help="Check existing outputs without writing")
+    parser.add_argument("--platform", choices=("all", *PLATFORMS), default="all")
     args = parser.parse_args()
-    body, refs = sources()
-    outputs = {
-        ROOT / "prompts" / "meta_pixel_capi_audit_master_prompt.md": build_prompt(body, refs),
-        ROOT / "dist" / "meta-tracking-audit.zip": build_zip(),
-    }
+    outputs = {}
+    selected = PLATFORMS if args.platform == "all" else (args.platform,)
+    for platform in selected:
+        skill = ROOT / "skills" / f"{platform}-tracking-audit"
+        references = reference_names(platform)
+        title, filename = PLATFORMS[platform]
+        body, refs = sources(skill, references)
+        outputs[ROOT / "prompts" / filename] = build_prompt(title, body, refs)
+        outputs[ROOT / "dist" / f"{skill.name}.zip"] = build_zip(skill, references)
     for path, data in outputs.items():
         if args.check:
             if not path.exists() or path.read_bytes() != data:
